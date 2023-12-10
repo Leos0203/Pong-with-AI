@@ -7,6 +7,7 @@ class Paddle:
         self.size = size
         self.rect = pygame.Rect(position, size)
 
+        self.collision_timer = 0
         self.speed = 500
 
     def render(self, screen):

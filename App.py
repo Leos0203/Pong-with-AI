@@ -19,7 +19,8 @@ class App:
 
         self.line = pygame.image.load("border.png")
 
-        self.Player = Paddle((32, 200), (255, 255, 255), (12, 64))
+        self.Player = Paddle((32, 200), (0, 255, 255), (12, 64))
+        self.Enemy = Paddle((Settings.SCREEN_WIDTH - 32, 200), (204, 0, 0), (12, 64))
 
         self.Borders = [
             pygame.Rect(0, 0, Settings.SCREEN_WIDTH, 16),
@@ -32,20 +33,19 @@ class App:
         self.score = [0, 0]
         self.font = pygame.font.SysFont("Roboto", 64)
 
-    def collision(self):
-        if pygame.time.get_ticks() - self.ball_collision_timer >= 10:
-            if self.Ball.check_collision(self.Player.rect):
+    def ball_paddle_collision(self, paddle: Paddle):
+        if pygame.time.get_ticks() - paddle.collision_timer >= 10:
+            if self.Ball.check_collision(paddle.rect):
                 # paddle size is 64 so value is in range -32 to 32
-                interesect = self.Player.rect.center[1] - self.Ball.rect.y
+                interesect = paddle.rect.center[1] - self.Ball.rect.y
                 # this will give us a value between -1 and 1
                 normalized_intersect = interesect / 32
-                self.Ball.velocity_x = max(self.Ball.min_velocity, self.Ball.max_velocity * normalized_intersect)
+                if self.Ball.velocity_x > 0:
+                    self.Ball.velocity_x = max(-self.Ball.min_velocity, -self.Ball.max_velocity * normalized_intersect)
+                elif self.Ball.velocity_x < 0:
+                    self.Ball.velocity_x = max(self.Ball.min_velocity, self.Ball.max_velocity * normalized_intersect)
                 self.Ball.velocity_y = self.Ball.max_velocity * -normalized_intersect
-
-            for border in self.Borders:
-                if self.Ball.check_collision(border):
-                    self.Ball.velocity_y *= -1
-            self.ball_collision_timer = pygame.time.get_ticks()
+            paddle.collision_timer = pygame.time.get_ticks()
 
     def check_for_point(self):
         if self.Ball.rect.x < -self.Ball.image.get_size()[0]:
@@ -61,17 +61,31 @@ class App:
             self.Ball.velocity_x = self.Ball.max_velocity / 2
             self.Ball.velocity_y = 0
 
+    def AI_algorythm(self):
+        if self.Ball.rect.y < self.Enemy.rect.y:
+            self.Enemy.rect.y = max(self.Enemy.rect.y - self.Enemy.speed * self.dt, 16)
+        if self.Ball.rect.y > self.Enemy.rect.y:
+            self.Enemy.rect.y = min(
+                self.Enemy.rect.y + self.Enemy.speed * self.dt, Settings.SCREEN_HEIGHT - self.Enemy.size[1] - 16
+            )
+
     def update(self):
         self.team_one_score_text = self.font.render(f"{self.score[0]}", True, (255, 255, 255))
         self.team_two_score_text = self.font.render(f"{self.score[1]}", True, (255, 255, 255))
         self.check_for_point()
-        self.collision()
+        self.ball_paddle_collision(self.Player)
+        self.ball_paddle_collision(self.Enemy)
+
+        for border in self.Borders:
+            if self.Ball.check_collision(border):
+                self.Ball.velocity_y *= -1
+
+        self.AI_algorythm()
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_s]:
             self.Player.rect.y = min(
-                self.Player.rect.y + self.Player.speed * self.dt,
-                Settings.SCREEN_HEIGHT - self.Player.size[1] - 16,
+                self.Player.rect.y + self.Player.speed * self.dt, Settings.SCREEN_HEIGHT - self.Player.size[1] - 16
             )
         elif keys[pygame.K_w]:
             self.Player.rect.y = max(self.Player.rect.y - self.Player.speed * self.dt, 16)
@@ -87,6 +101,7 @@ class App:
             pygame.draw.rect(self.screen, (224, 224, 224), border)
 
         self.Player.render(self.screen)
+        self.Enemy.render(self.screen)
 
         self.Ball.render(self.screen)
 
