@@ -5,7 +5,7 @@ import pygame
 
 import Settings
 from Ball import Ball
-from Player import Player
+from Paddle import Paddle
 
 
 class App:
@@ -19,7 +19,7 @@ class App:
 
         self.line = pygame.image.load("border.png")
 
-        self.Player = Player((32, 200), (255, 255, 255), (12, 64))
+        self.Player = Paddle((32, 200), (255, 255, 255), (12, 64))
 
         self.Borders = [
             pygame.Rect(0, 0, Settings.SCREEN_WIDTH, 16),
@@ -67,7 +67,15 @@ class App:
         self.check_for_point()
         self.collision()
 
-        self.Player.update(self.dt)
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_s]:
+            self.Player.rect.y = min(
+                self.Player.rect.y + self.Player.speed * self.dt,
+                Settings.SCREEN_HEIGHT - self.Player.size[1] - 16,
+            )
+        elif keys[pygame.K_w]:
+            self.Player.rect.y = max(self.Player.rect.y - self.Player.speed * self.dt, 16)
+
         self.Ball.update(self.dt)
 
     def render(self):
